@@ -1,0 +1,142 @@
+/*  Replace this with your solution from project 2 */
+
+import java_cup.runtime.*;
+
+class CSXToken {
+	int linenum;
+	int colnum;
+	CSXToken(int line,int col){
+		linenum=line;colnum=col;};
+}
+
+class CSXIntLitToken extends CSXToken {
+	int intValue;
+	CSXIntLitToken(int val,int line,int col){
+		super(line,col);intValue=val;};
+}
+
+//class CSXIdentifierToken extends CSXToken {
+//	static Registration reg = new Registration();
+//	SerialNum serialNum;
+//	CSXIdentifierToken(String text,int line,int col){
+//		super(line,col);serialNum=reg.registerStr(text);};
+//}
+class CSXIdentifierToken extends CSXToken {
+	String identifierText;
+	CSXIdentifierToken(String text,int line,int col){
+		super(line,col);identifierText=text;};
+}
+
+class CSXCharLitToken extends CSXToken {
+	char charValue;
+	CSXCharLitToken(char val,int line,int col){
+		super(line,col);charValue=val;};
+}
+
+//class CSXStringLitToken extends CSXToken {
+//	String stringValue;
+//	String fullStringValue;
+//	CSXStringLitToken(String text,int line,int col){
+//		super(line,col);
+//		fullStringValue=text;
+//		stringValue=null;// This will have to be changed
+//	};
+//}
+class CSXStringLitToken extends CSXToken {
+	String stringText; // Full text of string literal,
+                          //  including quotes & escapes
+	CSXStringLitToken(String text,int line,int col){
+		super(line,col);
+		stringText=text;
+	};
+}
+
+
+// This class is used to track line and column numbers
+// Feel free to change to extend it
+class Pos {
+	static int  linenum = 1; /* maintain this as line number current
+                                 token was scanned on */
+	static int  colnum = 1; /* maintain this as column number current
+                                 token began at */
+	static int  line = 1; /* maintain this as line number after
+					scanning current token  */
+	static int  col = 1; /* maintain this as column number after
+					scanning current token  */
+	static void setpos() { // set starting position for current token
+		linenum = line;
+		colnum = col;
+	}
+}
+
+%%
+Digit=[0-9]
+Letter=[A-Za-z]
+WhiteSpace=[\040\t]
+
+
+// Tell JLex to have yylex() return a Symbol, as expected by JavaCup
+%type Symbol
+
+// Tell JLex what to return when eof of file is hit
+%eofval{
+return new Symbol(sym.EOF, new  CSXToken(0,0));
+%eofval}
+
+
+%%
+"+"	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.PLUS,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+"-"	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.MINUS,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+"="	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.ASG,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+";"	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.SEMI,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+"("	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.LPAREN,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+")"	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.RPAREN,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+"{"	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.LBRACE,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+"}"	{Pos.setpos(); Pos.col +=1;
+		return new Symbol(sym.RBRACE,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+[Ii][Ff] {Pos.setpos(); Pos.col +=2;
+		return new Symbol(sym.rw_IF,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+[Ii][Nn][Tt] {Pos.setpos(); Pos.col +=3;
+		return new Symbol(sym.rw_INT,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+[Bb][Oo][Oo][Ll] {Pos.setpos(); Pos.col +=4;
+		return new Symbol(sym.rw_BOOL,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+[Dd][Ii][Ss][Pp][Ll][Aa][Yy] {Pos.setpos(); Pos.col +=5;
+		return new Symbol(sym.rw_DISPLAY,
+			new CSXToken(Pos.linenum,Pos.colnum));}
+{Letter}({Letter}|{Digit})*
+		{ Pos.setpos(); Pos.col += yytext().length();
+		  return new Symbol(sym.IDENTIFIER,
+				new CSXIdentifierToken(
+					yytext(), Pos.linenum,Pos.colnum));}
+{Digit}+	{ Pos.setpos(); Pos.col += yytext().length();
+		  return new Symbol(sym.INTLIT,
+		  		new CSXIntLitToken(
+					new Integer(yytext()).intValue(),
+					Pos.linenum,Pos.colnum));}
+{WhiteSpace}	{Pos.col +=1;}
+
+\n		{Pos.line +=1; Pos.col = 1;}
+
+.		{System.err.println("Lexical error (line " + Pos.linenum +
+				", column " + Pos.colnum +
+				"): " + yytext() + " ignored.");
+			Pos.col +=1;}
+

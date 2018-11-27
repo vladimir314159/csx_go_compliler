@@ -1,0 +1,133 @@
+/* Replace this w/ your solution for project 3 */
+
+/***
+ *
+ * This Is A Java CUP Specification For CSX-lite, a Small Subset
+ * of The CSX Language,  Used In Cs536
+ *
+ ***/
+
+/* Preliminaries to set up and use the scanner.  */
+
+import java_cup.runtime.*;
+action code {:
+  // only need to create one of these ever
+  static public  intTypeNode	INTNode = new intTypeNode(0,0);
+  // only need to create one of these ever
+  static public  boolTypeNode	BOOLNode = new boolTypeNode(0,0);
+:};
+
+
+
+parser code {:
+ public void syntax_error(Symbol cur_token)
+     {
+ 	  report_error("CSX syntax error at line "+
+			String.valueOf(((CSXToken)cur_token.value).linenum),
+			null);
+     }
+     public void report_fatal_error( String   message, Object   info)
+	 throws java.lang.Exception
+     {
+	   done_parsing();
+ 	   report_error(message, info);
+	   throw new SyntaxErrorException();
+     }
+
+:};
+
+init with {:              :};
+scan with {: return Scanner.next_token(); :};
+
+/* Terminals (tokens returned by the scanner). */
+terminal CSXIdentifierToken     IDENTIFIER;
+terminal CSXIntLitToken     	INTLIT;
+terminal CSXToken     		SEMI, LPAREN, RPAREN, ASG, LBRACE, RBRACE;
+terminal CSXToken     		PLUS, MINUS, rw_IF, rw_BOOL, rw_DISPLAY, rw_INT;
+
+/* Non terminals */
+non terminal csxLiteNode     	prog;
+non terminal stmtsNode     	stmts;
+non terminal stmtNode	     	stmt;
+non terminal exprNode		exp,term;
+non terminal nameNode	     	var;
+non terminal fieldDeclsNode    	decls;
+non terminal identNode     	ident;
+
+
+
+
+start with prog;
+
+
+prog		::= LBRACE:l decls:d stmts:s RBRACE
+			 {: RESULT =
+				new csxLiteNode(d, s, l.linenum,l.colnum); :}	
+		;
+
+decls		::= rw_INT:i  ident:id SEMI decls:d
+			 {: RESULT =new fieldDeclsNode(
+			        new varDeclNode(id, INTNode,exprNode.NULL,
+						i.linenum,i.colnum),	
+				d, i.linenum,i.colnum);:}	
+
+		| rw_BOOL:i ident:id SEMI decls:d
+			 {: RESULT =new fieldDeclsNode(
+			        new varDeclNode(id,BOOLNode,exprNode.NULL,
+						i.linenum,i.colnum),	
+				d, i.linenum,i.colnum);:}	
+		|
+			 {: RESULT = fieldDeclsNode.NULL;:}
+		;
+
+stmts		::= stmt:s1  stmts:s2
+			 {: RESULT =
+			new stmtsNode(s1,s2,s1.linenum,s1.colnum);
+			 :}	
+		| 
+			 {: RESULT = stmtsNode.NULL; :}
+		;
+
+stmt		::= var:id ASG exp:e SEMI
+			 {: RESULT =
+			new asgNode(id, e, id.linenum, id.colnum);
+			 :}	
+
+		| rw_IF:i LPAREN exp:e RPAREN  stmt:s
+			 {:
+			 RESULT =new ifThenNode(e, s, stmtNode.NULL,
+						i.linenum,i.colnum); :}	
+		| rw_DISPLAY:pr LPAREN  exp:e  RPAREN SEMI
+			 {: RESULT = new displayNode(e, displayNode.NULL,
+					pr.linenum,pr.colnum);:}	
+		;
+exp		::= exp:l PLUS:op term:r
+			 {: RESULT=new binaryOpNode(l,sym.PLUS,
+				r,op.linenum,op.colnum,
+				new Types(Types.Integer)); :}	
+		| exp:l MINUS:op term:r
+			 {: RESULT=new binaryOpNode(l,sym.MINUS,
+				r,op.linenum,op.colnum,
+				new Types(Types.Integer)); :}	
+		| term:t		
+			 {: RESULT = t; :}
+		;
+term		::= var:i		
+			 {: RESULT = i; :}
+
+
+		| INTLIT:i		
+			 {: RESULT = new intLitNode(i.intValue,i.linenum,
+						i.colnum);:}
+		;
+var		::= IDENTIFIER:i
+			 {: RESULT = new nameNode(
+					  new identNode(i.identifierText,
+						 i.linenum,i.colnum),
+					  exprNode.NULL,
+					  i.linenum,i.colnum); :}	
+		;
+ident		::= IDENTIFIER:i
+			 {: RESULT = new identNode(i.identifierText,
+					  i.linenum,i.colnum); :}	
+		;
