@@ -9,7 +9,6 @@
 
 package p00csx
 func main() {
-    print 1;
     print "Testing Program p00csx\n";
     print "Test completed\n";
 } // func main

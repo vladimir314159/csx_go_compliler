@@ -632,6 +632,20 @@ class arrayDeclNode extends declNode {
 		arrayName.checkTypes();
 
 	}
+	void cg(){
+		//arrayName.cg();
+		//elementType.cg();
+		arraySize.cg();
+		if(elementType.type.val == Types.Integer){
+			gen("newarray","int");
+		}
+		if(elementType.type.val == Types.Boolean){
+			gen("newarray","bool");
+		}
+		arrayName.idinfo.varIndex = numberOfLocals;
+		gen("astore",arrayName.idinfo.varIndex);
+		numberOfLocals++;
+	}
 	private final identNode arrayName;
 	private final typeNode elementType;
 	private final intLitNode arraySize;
@@ -1103,9 +1117,17 @@ class asgNode extends stmtNode {
         // Translate RHS (an expression)
         	source.cg();
 			System.out.println("ad:\t"+target.getClass().getName());
+
         // Value to be stored is now on the stack
-        // Save it into target variable, using the variable's index
-			gen("istore", ((identNode)target).idinfo.varIndex);
+		// Save it into target variable, using the variable's index
+			if(target.getClass().getName() == "identNode"){
+				gen("istore", ((identNode)target).idinfo.varIndex);
+			}
+			else if(target.getClass().getName() == "nameSubNode"){
+				target.cg();
+				gen("iastore", ((nameSubNode)target).idinfo.varIndex);
+			}
+
 	};
 	private final exprNode target;
 	private final exprNode source;
@@ -1404,19 +1426,10 @@ class displayNode extends stmtNode {
 	void cg(){
 		if ( outputValue != null){
 			outputValue.cg();
-			/*
-			if(outputValue.kind.val == Kinds.Var){
-				switch(outputValue.type.val){
-					case Types.String:
-						gen("aload",((identNode)outputValue).idinfo.varIndex);
-						break;
-					default:
-						gen("iload",((identNode)outputValue).idinfo.varIndex);
-
-				}
-			
+			System.out.println("kinds:\t"+outputValue.kind);
+			if(outputValue.kind.val == Kinds.Array){
+				gen("iaload",((nameSubNode)outputValue).idinfo.varIndex);
 			}
-			*/
 			switch(outputValue.type.val){
 				case Types.Integer:
 					gen("invokestatic"," CSXLib/printInt(I)V");
@@ -2215,6 +2228,10 @@ class identNode extends exprNode {
 	} // checkTypes
 	void cg(){
 		System.out.println(idinfo.type);
+		if( idinfo.kind.val == Kinds.Array){
+			gen("iaload",idinfo.varIndex);
+			return;
+		}
 		switch(idinfo.type.val){
 			case Types.Integer:
 			case Types.Boolean:
@@ -2252,12 +2269,18 @@ class nameSubNode extends exprNode {
 			typeErrors++;
 		}
 		else {
+			kind = id.kind;
 			type = id.type;
 			idinfo = id;
 		}
 		varName.checkTypes();
 		subscriptVal.checkTypes();
 		typesMustBe(subscriptVal.type.val, Types.Integer,Types.Character, error()+"arrays can only be indexed by int or char.");// subscriptVal.type.val)
+	}
+	void cg() {
+			subscriptVal.cg();
+			gen("aload",idinfo.varIndex);
+
 	}
 	public String idname;
 	public SymbolInfo idinfo; // symbol table entry for this ident
