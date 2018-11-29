@@ -334,15 +334,7 @@ class ProgramNode extends ASTNode {
 		return (cgErrors == 0);
  	}
 	void cg() {
-		gen(".class","public","test");
-		gen(".super","java/lang/Object");
-		gen(".method"," public static","main([Ljava/lang/String;)V");
 		members.cg();
-		gen("return");
-		if (numberOfLocals >=0)
-			gen(".limit","locals",numberOfLocals+1);
-		gen(".limit","stack",20);
-		gen(".end","method");
 	}
 	private identNode packageName;
 	private memberDeclsNode members;
@@ -395,7 +387,16 @@ class memberDeclsNode extends ASTNode {
 	}
 
 	void cg() {
+		gen(".class","public","test");
+		gen(".super","java/lang/Object");
 		fields.cg();
+		gen(".method"," public static","main([Ljava/lang/String;)V");
+		gen("invokestatic","test/main()V");
+		gen("return");
+		if (numberOfLocals >=0)
+			gen(".limit","locals",numberOfLocals+1);
+		gen(".limit","stack",20);
+		gen(".end","method");
 		methods.cg();
 	}
 	private final fieldDeclsNode fields;
@@ -638,9 +639,10 @@ class arrayDeclNode extends declNode {
 		arraySize.cg();
 		if(elementType.type.val == Types.Integer){
 			gen("newarray","int");
+			//gen("dup");
 		}
 		if(elementType.type.val == Types.Boolean){
-			gen("newarray","bool");
+			gen("newarray","int");
 		}
 		arrayName.idinfo.varIndex = numberOfLocals;
 		gen("astore",arrayName.idinfo.varIndex);
@@ -839,10 +841,18 @@ class methodDeclNode extends ASTNode {
 
 	void cg() {
 		//name.cg();
+		gen(".method"," public static",name.idname+"()V");
+		if (numberOfLocals >=0)
+			gen(".limit","locals",numberOfLocals+2);
 		args.cg();
 		returnType.cg();
 		decls.cg();
 		stmts.cg();
+		gen("return");
+	
+		gen(".limit","stack",20);
+		gen(".end","method");
+
 	}
 	public String nameOfFunc;
 	public LinkedList<SymbolInfo> paramTypes = new LinkedList<SymbolInfo>(); 
@@ -1115,17 +1125,22 @@ class asgNode extends stmtNode {
 	void cg() {
 
         // Translate RHS (an expression)
-        	source.cg();
+
 			System.out.println("ad:\t"+target.getClass().getName());
 
         // Value to be stored is now on the stack
 		// Save it into target variable, using the variable's index
 			if(target.getClass().getName() == "identNode"){
+				source.cg();
 				gen("istore", ((identNode)target).idinfo.varIndex);
 			}
 			else if(target.getClass().getName() == "nameSubNode"){
-				target.cg();
-				gen("iastore", ((nameSubNode)target).idinfo.varIndex);
+
+				((nameSubNode)target).cgForAsg();
+				source.cg();
+				gen("iastore");//, ((nameSubNode)target).idinfo.varIndex);
+
+
 			}
 
 	};
@@ -1427,9 +1442,9 @@ class displayNode extends stmtNode {
 		if ( outputValue != null){
 			outputValue.cg();
 			System.out.println("kinds:\t"+outputValue.kind);
-			if(outputValue.kind.val == Kinds.Array){
-				gen("iaload",((nameSubNode)outputValue).idinfo.varIndex);
-			}
+			/*if(outputValue.kind.val == Kinds.Array){
+				gen("iaload");//,((nameSubNode)outputValue).idinfo.varIndex);
+			}*/
 			switch(outputValue.type.val){
 				case Types.Integer:
 					gen("invokestatic"," CSXLib/printInt(I)V");
@@ -2103,6 +2118,9 @@ class fctCallNode extends stmtNode {
 		checkParams(id.funcParams, params, error()+
 		"no function found with that signature.");
 	}
+	void cg(){
+		gen("invokestatic","test/"+methodName.idname+"()V");
+	}
 	public LinkedList<SymbolInfo> params = new LinkedList<SymbolInfo>();
 	private final identNode methodName;
 	private final argsNode methodArgs;
@@ -2277,9 +2295,15 @@ class nameSubNode extends exprNode {
 		subscriptVal.checkTypes();
 		typesMustBe(subscriptVal.type.val, Types.Integer,Types.Character, error()+"arrays can only be indexed by int or char.");// subscriptVal.type.val)
 	}
+	void cgForAsg(){
+		gen("aload",idinfo.varIndex);
+		subscriptVal.cg();
+	}
 	void cg() {
-			subscriptVal.cg();
+			//gen("dup");
 			gen("aload",idinfo.varIndex);
+			subscriptVal.cg();
+			gen("iaload");
 
 	}
 	public String idname;

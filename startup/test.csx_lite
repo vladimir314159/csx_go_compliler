@@ -1,14 +1,21 @@
-## Test 24
+## Test 26
  Created: Dec 2002; Modified Jun 2018
 
-  Test global arrays
+ Check  simple parameterless procedures
+
 ##
 
-package p24csx
+package p26csx
+var z int = 100;
+func foo(){
+    print z;
+    print "I called foo()\nWoot!!!\n";
+}
 func main() {
-    var i int[2];
-    i[0] = 5;
-    i[1] = 10;
-    //print "i[0]:\t",i[1];
+    var x int;
+    var y int;
+    foo();
+    print "Testing Program p26csx", "\n";
+    print "Test completed", "\n";
 } // func main
-// package p24csx
+// package p26csx
