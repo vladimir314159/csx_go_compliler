@@ -1,21 +1,14 @@
-## Test 26
+## Test 29
  Created: Dec 2002; Modified Jun 2018
 
- Check  simple parameterless procedures
+  Check scoping and local variable access
 
 ##
 
-package p26csx
-var z int = 100;
-func foo(){
-    print z;
-    print "I called foo()\nWoot!!!\n";
+package p29csx
+var globe int;
+func main(){
+    globe = 9;
+    print globe;
 }
-func main() {
-    var x int;
-    var y int;
-    foo();
-    print "Testing Program p26csx", "\n";
-    print "Test completed", "\n";
-} // func main
-// package p26csx
+// package p29csx

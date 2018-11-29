@@ -6,6 +6,7 @@
 
 import java.util.LinkedList;
 class SymbolInfo extends Symb {
+ public boolean globel;
  public int  varIndex; // Index used to address a CSX-lite variable
  public Kinds kind; // Should always be Var in CSX-lite
  public Types type; // Should always be Integer or Boolean in CSX-lite
@@ -17,22 +18,23 @@ class SymbolInfo extends Symb {
 	kind = k;
 	type = t; 
 	funcParams = ll;
-	returned = false;
+	globel = returned = false;
+
  }
  public SymbolInfo(String id, Kinds k, Types t, int lenOfString){
 	 super(id);
 	 kind = k;
 	 type = t;
 	 length = lenOfString;
-	 returned = false;
+	 globel = returned = false;
  };
  public SymbolInfo(String id, Kinds k, Types t){
 	super(id);
 	//System.out.println(id+":"+t);
-	kind = k; type = t;	returned = false;};
+	kind = k; type = t;	globel = returned = false;};
  public SymbolInfo(String id, int k, int t){
 	super(id);
-	kind = new Kinds(k); type = new Types(t);	returned = false;};
+	kind = new Kinds(k); type = new Types(t);	globel = returned = false;};
  public String toString(){
              return "("+name()+": kind=" + kind+ ", type="+  type+")";};
 }

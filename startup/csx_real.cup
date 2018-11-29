@@ -282,10 +282,10 @@ unit	::= rw_TRUE:t
 		{: RESULT = new intLitNode(i.intValue,i.linenum,i.colnum);:}
 	|	
 		CHARLIT:c
-		{: RESULT = new charLitNode(c.charLiteralText,c.linenum,c.colnum);:}
+		{: RESULT = new charLitNode(c.charLitteralText,c.linenum,c.colnum);:}
 	|	
 		STRLIT:s
-		{: RESULT = new strLitNode(s.stringLiteralText,s.stringText,s.linenum,s.colnum);:}
+		{: RESULT = new strLitNode(s.stringLitteralText,s.stringText,s.linenum,s.colnum);:}
 	|
 		LPAREN:l expr:e RPAREN
 		{: RESULT = new parenthExprNode(e,l.linenum,l.colnum); :}

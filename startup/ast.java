@@ -4,15 +4,11 @@ import java.io.*;
 
 abstract class ASTNode {
 // abstract superclass; only subclasses are actually created
-
 	int linenum;
 	int colnum;
 	static PrintStream afile;	// File to generate JVM code into
-
 	static int cgErrors =  0;       // Total number of code gen errors 
-
 	static int numberOfLocals =  0; // Total number of local CSX-lite vars
-
 	static int labelCnt = 0;	// counter used to gen unique labels
 	static int typeErrors = 0; // Total number of type errors found 
 	static void genIndent(int indent) {
@@ -162,7 +158,39 @@ abstract class ASTNode {
 			if ( -1 == ParTypeCheck(arg.type.val, caller.getFirst().type.val, errorMsg) ) break;
 			caller.remove(0);
 		}																																														
-	}     
+	}    
+	static String typeGen(SymbolInfo id){
+		switch(id.type.val){
+			case Types.Boolean:
+				return "Z";
+			case Types.Character:
+				return "C";
+			case Types.Integer:
+				return "I";
+			case Types.String:
+				return "/java/lang/String;";
+			case Types.Void:
+				return "V";
+			default:
+				throw new Error();
+		}
+	}
+	static String typeGen(Types id){
+		switch(id.val){
+			case Types.Boolean:
+				return "Z";
+			case Types.Character:
+				return "C";
+			case Types.Integer:
+				return "I";
+			case Types.String:
+				return "/java/lang/String;";
+			case Types.Void:
+				return "V";
+			default:
+				throw new Error();
+		}
+	}
 	String error() {
 		return "Error (line " + linenum + "): ";
 	} // error
@@ -228,7 +256,8 @@ abstract class ASTNode {
 	//      The code which is written in the shared PrintStream  variable
 	//      afile (set by codegen)
 
-         void cg(){}; // This member is normally overridden in subclasses
+		 void cg(){}; // This member is normally overridden in subclasses
+		 void cgglobal(){};
 } // class ASTNode
 
 class nullNode extends ASTNode {
@@ -365,7 +394,6 @@ class classNode extends ASTNode {
 		className = id;
 		members = memb;
 	} // classNode
-
 	private final identNode className;
 	private final memberDeclsNode members;
 } // class classNode
@@ -389,10 +417,11 @@ class memberDeclsNode extends ASTNode {
 	void cg() {
 		gen(".class","public","test");
 		gen(".super","java/lang/Object");
-		fields.cg();
+		fields.cgglobal();
 		gen(".method"," public static","main([Ljava/lang/String;)V");
 		gen("invokestatic","test/main()V");
 		gen("return");
+		st.dump(System.out);
 		if (numberOfLocals >=0)
 			gen(".limit","locals",numberOfLocals+1);
 		gen(".limit","stack",20);
@@ -421,6 +450,25 @@ class fieldDeclsNode extends ASTNode {
 			thisField.checkTypes();
 		}
 		moreFields.checkTypes();
+	}
+	void cgglobal() {
+		SymbolInfo id = new SymbolInfo("_gobal",
+				new Kinds(Kinds.Other), new Types(Types.Unknown));
+			try {
+				st.insert(id);
+				//System.out.println("Symbol insert:"+id);
+			} catch (DuplicateException d) {
+				/* can't happen */
+			} catch (EmptySTException e) {
+				/* can't happen */
+			}
+		//System.out.println("thisField.cg()"+thisField+moreFields);
+		if(thisField!=null){
+			thisField.cgglobal();
+		}
+		if(moreFields!=null){
+			moreFields.cgglobal();
+		}
 	}
 	void cg() {
 		System.out.println("thisField.cg()"+thisField+moreFields);
@@ -504,10 +552,20 @@ class varDeclNode extends declNode {
 
 
 	}
+	void cgglobal(){
+		gen(".field static",varName.idname,typeGen(varType.type));
+		initValue.cg();
+		if(initValue.isNull()){
+			//gen("iconst_m1");	//this is fine since we already checked that local variables will be used.
+		}
+		else{
+			gen("putstatic","test/"+varName.idname,typeGen(varType.type));
+		}
+	}
 	void cg() {
 		//   Give this variable an index equal to numberOfLocals
 		//     and remember index in ST
-		System.out.println("var decls");
+		//System.out.println("var decls");
 		//varName.cg();
 		varType.cg();
 		initValue.cg();
@@ -841,15 +899,23 @@ class methodDeclNode extends ASTNode {
 
 	void cg() {
 		//name.cg();
-		gen(".method"," public static",name.idname+"()V");
+		args.cg();
+		StringBuilder params = new StringBuilder();
+		for (SymbolInfo param: paramTypes){
+			params.append(typeGen(param));
+		}
+		gen(".method"," public static",name.idname+"("+params.toString()+")"+typeGen(returnType.type));
 		if (numberOfLocals >=0)
 			gen(".limit","locals",numberOfLocals+2);
-		args.cg();
 		returnType.cg();
 		decls.cg();
 		stmts.cg();
-		gen("return");
-	
+		if(returnType.type.val == Types.Void){
+			gen("return");
+		}
+		else{
+			gen("ireturn");
+		}
 		gen(".limit","stack",20);
 		gen(".end","method");
 
@@ -1132,7 +1198,12 @@ class asgNode extends stmtNode {
 		// Save it into target variable, using the variable's index
 			if(target.getClass().getName() == "identNode"){
 				source.cg();
-				gen("istore", ((identNode)target).idinfo.varIndex);
+				if(((identNode)target).idinfo.globel){
+					gen("putstatic","test/"+((identNode)target).idname,typeGen(((identNode)target).idinfo.type));
+				}
+				else{
+					gen("istore", ((identNode)target).idinfo.varIndex);
+				}
 			}
 			else if(target.getClass().getName() == "nameSubNode"){
 
@@ -1534,6 +1605,9 @@ class returnNode extends stmtNode {
 			/* null return Value */
 		}
 	}
+	void cg(){
+		returnVal.cg();
+	}
 	private final exprNode returnVal;
 } // class returnNode 
 /*
@@ -1585,6 +1659,12 @@ class argsNode extends ASTNode {
 		super(line, col);
 		argVal = e;
 		moreArgs = a;
+	}
+	void cg(){
+		if(argVal!=null)
+			argVal.cg();
+		if(moreArgs!=null)
+			moreArgs.cg();
 	}
 	public LinkedList<SymbolInfo> params = new LinkedList<SymbolInfo>();
 	static nullArgsNode NULL = new nullArgsNode();
@@ -2092,7 +2172,7 @@ class fctCallNode extends stmtNode {
 		methodArgs.checkTypes();
 		for(SymbolInfo arg:  methodArgs.params){
 			params.add(arg);
-			//System.out.println(arg.toString());
+			System.out.println("args:\t"+arg.toString());
 		}
 		//methodArgs.params.clear();
 		//System.out.println(params.toString());
@@ -2119,7 +2199,21 @@ class fctCallNode extends stmtNode {
 		"no function found with that signature.");
 	}
 	void cg(){
-		gen("invokestatic","test/"+methodName.idname+"()V");
+		//methodArgs.checkTypes();
+		for(SymbolInfo arg:  methodArgs.params){
+			params.add(arg);
+			System.out.println("args:\t"+arg.toString());
+		}
+		methodArgs.cg();
+		StringBuilder a = new StringBuilder();
+		for(SymbolInfo param: params){
+			a.append(typeGen(param));
+			System.out.println("param:\t"+param.toString());
+		}
+		SymbolInfo id;
+		id = (SymbolInfo)st.globalLookup(methodName.idname);
+		System.out.println("sour creme:\t"+typeGen(id));
+		gen("invokestatic","test/"+methodName.idname+"("+a.toString()+")"+typeGen(id.type));
 	}
 	public LinkedList<SymbolInfo> params = new LinkedList<SymbolInfo>();
 	private final identNode methodName;
@@ -2172,6 +2266,22 @@ class fctUnitCallNode extends exprNode { // this one is for unit
 		checkParams(id.funcParams, params, error()+
 		"no function found with that signature.");
 	}
+	void cg(){
+		//methodArgs.checkTypes();
+		for(SymbolInfo arg:  methodArgs.params){
+			params.add(arg);
+			System.out.println("args:\t"+arg.toString());
+		}
+		methodArgs.cg();
+		StringBuilder a = new StringBuilder();
+		for(SymbolInfo param: params){
+			a.append(typeGen(param));
+			System.out.println("param:\t"+param.toString());
+		}
+		SymbolInfo id;
+		id = (SymbolInfo)st.globalLookup(methodName.idname);
+		gen("invokestatic","test/"+methodName.idname+"("+a.toString()+")"+typeGen(id));
+	}
 	public LinkedList<SymbolInfo> params = new LinkedList<SymbolInfo>();
 	private final identNode methodName;
 	private final argsNode methodArgs;
@@ -2202,6 +2312,10 @@ class actualsNode extends argsNode {
 		//System.out.println("more.params:"+more.params);
 		params.addAll(more.params);
 		
+	}
+	void cg(){
+		exprs.cg();
+		more.cg();
 	}
 	static nullArgDeclsNode NULL = new nullArgDeclsNode();
 	private exprNode exprs;
@@ -2243,22 +2357,47 @@ class identNode extends exprNode {
 			idinfo = id; // Save ptr to correct symbol table entry
 		} // id != null
 		//System.out.println(type);
+		SymbolInfo id1 = (SymbolInfo)st.globalOnly(idname);
+		if ( id1 != null){
+			idinfo.globel = true;
+		}
 	} // checkTypes
 	void cg(){
-		System.out.println(idinfo.type);
-		if( idinfo.kind.val == Kinds.Array){
-			gen("iaload",idinfo.varIndex);
-			return;
+		SymbolInfo id = (SymbolInfo)st.globalOnly(idname);
+		st.dump(System.out);
+		System.out.println("id:\t"+idname);
+		if(id == null) {   //this is not a global variable;
+			System.out.println(idinfo.type);
+			if( idinfo.kind.val == Kinds.Array){
+				gen("iaload",idinfo.varIndex);
+				return;
+			}
+			switch(idinfo.type.val){
+				case Types.Integer:
+				case Types.Boolean:
+				case Types.Character:
+					//gen("dup");
+					gen("iload",idinfo.varIndex);
+					break;
+				default:
+					throw new Error();
+			}
 		}
-		switch(idinfo.type.val){
-			case Types.Integer:
-			case Types.Boolean:
-			case Types.Character:
-				//gen("dup");
-				gen("iload",idinfo.varIndex);
-				break;
-			default:
-				throw new Error();
+		else { //this is a global variable;
+			if( idinfo.kind.val == Kinds.Array){
+				gen("iaload",idinfo.varIndex);
+				return;
+			}
+			switch(idinfo.type.val){
+				case Types.Integer:
+				case Types.Boolean:
+				case Types.Character:
+					//gen("dup");
+					gen("getstatic","test/"+idname,typeGen(idinfo.type));
+					break;
+				default:
+					throw new Error();
+			}
 		}
 	}
 	public String idname;

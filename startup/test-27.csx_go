@@ -1,0 +1,28 @@
+## Test 27
+ Created: Dec 2002; Modified Jun 2018
+
+ Check  simple parameterless functions
+
+##
+
+package p27csx
+func proc1() int {
+    print "\n", "Procedure 1 entered";
+    print "\n", "Procedure 1 exited";
+    return 123;
+} // func proc1
+func proc2() bool {
+    print "\n", "Procedure 2 entered";
+    print "\n", "Procedure 2 exited";
+    return true;
+} // func proc2
+func main() {
+    var x int;
+    var y int;
+    print "Testing Program p27csx", "\n";
+    print proc1();
+    print proc2();
+    print "\n";
+    print "Test completed", "\n";
+} // func main
+// package p27csx

@@ -67,6 +67,19 @@ class SymbolTable {
 		} // while top not null
 		return null;
 	} // globalLookup(String)
+	public Symb globalOnly(String s) {
+		final String key = s.toLowerCase(Locale.US);
+		Scope top = this.top;
+		while( top != null){
+			if (top.next == null){
+				return top.currentScope.get(key);
+			}
+			else {
+				top  = top.next;
+			}
+		}
+		return null;
+	}
 
 	public String toString() {
 		final StringBuilder ans = new StringBuilder();
