@@ -71,10 +71,14 @@ class SymbolTable {
 		final String key = s.toLowerCase(Locale.US);
 		Scope top = this.top;
 		while( top != null){
+			final Symb ans = top.currentScope.get(key);
 			if (top.next == null){
-				return top.currentScope.get(key);
+				return ans;
 			}
 			else {
+				if(ans != null) {
+					return null;
+				}
 				top  = top.next;
 			}
 		}

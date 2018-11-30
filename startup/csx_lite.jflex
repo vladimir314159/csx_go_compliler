@@ -1,6 +1,4 @@
 /*  Expand this file into your solution for project 2 */
-// grader: remove the obsolete comment.  -0
-// grader: rename the file csx_go.jflex  -0
 import java_cup.runtime.*;
 
 class CSXToken {
@@ -20,10 +18,8 @@ class CSXErrorToken extends CSXToken {
 }
 
 //integer literal class
-//This function cetchs overflow both in the positive and negative side.
-// grader: spelling: catches  -0
-//Also, it converts ~ to a negative sign and just removes the + since it is redundent
-// grader: spelling: redundant -0
+//This function catches overflow both in the positive and negative side.
+//Also, it converts ~ to a negative sign and just removes the + since it isredundant
 class CSXIntLitToken extends CSXToken {
 	int intValue;
 	String stringValue;
@@ -74,7 +70,6 @@ class CSXIdentifierToken extends CSXToken {
 class CSXStringLitToken extends CSXToken {
 	String stringText; // \n is a real newline this is the real value of the string
 	String stringLitteralText; // Full text of string literal,
-// grader: spelling: literal (throughout) -0
                           //  including quotes & escapes thi
 	CSXStringLitToken(String text,int line,int col) {
 		super(line,col);
@@ -86,9 +81,7 @@ class CSXStringLitToken extends CSXToken {
 			}
 			else {
 				char charValue = '\0';
-				i++;  						//scip over the escape chariture.
-// grader: spelling: character -0
-// grader: spelling: skip -1
+				i++;  						//skip over the escape character.
 				switch(text.charAt(i)){
 					case 'n':
 						stringBuilder.append('\n');
@@ -216,8 +209,7 @@ NOTENDLINE = [^\n\r$]
 }
 
 
-//Next are all of the reserved words or charictures case insinsitive so var can also be Var or vaR
-// grader: spelling: insensitive -1
+//Next are all of the reserved words or charictures case insensitive so var can also be Var or vaR
 //besides that this part is all standered.
 "var" {
 	return new Symbol(sym.rw_VAR,
@@ -442,8 +434,7 @@ NOTENDLINE = [^\n\r$]
 }
 
 //blank spaces are not significant however the separate things so 
-// a b is difforent then ab
-// grader: spelling: different from -1
+// a b is different then ab
 " "	{
 	/* */
 }
@@ -468,10 +459,7 @@ NOTENDLINE = [^\n\r$]
 		new CSXCharLitToken(yytext(),yyline,yycolumn));
 }
 //Add positive or negative integer
-// [~+]?{DIGIT}+ {
-// grader: treats 3+4 as two tokens, 3, +4 instead of three.  -2
-// grader: I fixed.
-[~]?{DIGIT}+ {
+[~+]?{DIGIT}+ {
 	return new Symbol(sym.INTLIT,
 		new CSXIntLitToken(yytext(),
 			yyline,yycolumn));
@@ -483,7 +471,7 @@ NOTENDLINE = [^\n\r$]
 }
 
 "-" {
-	return new Symbol(sym.DASH,
+	return new Symbol(sym.MINUS,
 		new CSXToken(yyline,yycolumn));
 }
 
@@ -497,5 +485,3 @@ NOTENDLINE = [^\n\r$]
 	return new Symbol(sym.error, 
 		new CSXErrorToken(yytext(),yyline,yycolumn));
 }
-
-

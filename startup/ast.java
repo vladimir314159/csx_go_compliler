@@ -9,6 +9,7 @@ abstract class ASTNode {
 	static PrintStream afile;	// File to generate JVM code into
 	static int cgErrors =  0;       // Total number of code gen errors 
 	static int numberOfLocals =  0; // Total number of local CSX-lite vars
+	//tatic int numberOfPar
 	static int labelCnt = 0;	// counter used to gen unique labels
 	static int typeErrors = 0; // Total number of type errors found 
 	static void genIndent(int indent) {
@@ -159,6 +160,12 @@ abstract class ASTNode {
 			caller.remove(0);
 		}																																														
 	}    
+	static String arrayGen(SymbolInfo id){
+		if(id.kind.val == Kinds.ArrayParam || id.kind.val == Kinds.Array){
+			return "[";
+		}
+		return "";
+	}
 	static String typeGen(SymbolInfo id){
 		switch(id.type.val){
 			case Types.Boolean:
@@ -258,6 +265,7 @@ abstract class ASTNode {
 
 		 void cg(){}; // This member is normally overridden in subclasses
 		 void cgglobal(){};
+		 void cgglobalput(){};
 } // class ASTNode
 
 class nullNode extends ASTNode {
@@ -419,6 +427,8 @@ class memberDeclsNode extends ASTNode {
 		gen(".super","java/lang/Object");
 		fields.cgglobal();
 		gen(".method"," public static","main([Ljava/lang/String;)V");
+		System.out.println("rewq"+fields.getClass().toString());
+		fields.cgglobalput();
 		gen("invokestatic","test/main()V");
 		gen("return");
 		st.dump(System.out);
@@ -469,6 +479,23 @@ class fieldDeclsNode extends ASTNode {
 		if(moreFields!=null){
 			moreFields.cgglobal();
 		}
+		//setGlobles();
+		//gen(".method"," public static","_global()V");
+		//if (numberOfLocals >=0)
+		//	gen(".limit","locals",numberOfLocals+8);
+
+		//gen(".limit","stack", 20);
+		//gen(".end","method");
+
+	}
+	void cgglobalput(){
+		if(thisField!=null){
+			thisField.cgglobalput();
+		}
+		if(moreFields!=null){
+			System.out.println("count");
+			moreFields.cgglobalput();
+		}
 	}
 	void cg() {
 		System.out.println("thisField.cg()"+thisField+moreFields);
@@ -479,6 +506,7 @@ class fieldDeclsNode extends ASTNode {
 			moreFields.cg();
 		}
 	}
+	public String globesCode;
 	static nullFieldDeclsNode NULL = new nullFieldDeclsNode();
 	private declNode thisField;
 	private fieldDeclsNode moreFields;
@@ -554,12 +582,16 @@ class varDeclNode extends declNode {
 	}
 	void cgglobal(){
 		gen(".field static",varName.idname,typeGen(varType.type));
+	}
+	void cgglobalput(){
+		System.out.println("asdfjkl1");
 		initValue.cg();
 		if(initValue.isNull()){
 			//gen("iconst_m1");	//this is fine since we already checked that local variables will be used.
 		}
 		else{
-			gen("putstatic","test/"+varName.idname,typeGen(varType.type));
+			gen("putstatic","test/"+varName.idname,typeGen(initValue.type));
+			System.out.println("eat");
 		}
 	}
 	void cg() {
@@ -625,6 +657,21 @@ class constDeclNode extends declNode {
 		} // id != null
 		constName.checkTypes();
 		constValue.checkTypes();
+	}
+	void cgglobal(){
+		gen(".field static",constName.idname, typeGen(constValue.type));
+
+	}
+	void cgglobalput(){
+		System.out.println("asdfjkl2");
+		constValue.cg();
+		if(constValue.isNull()){
+			//gen("iconst_m1");	//this is fine since we already checked that local variables will be used.
+		}
+		else{
+			gen("putstatic","test/"+constName.idname,typeGen(constValue.type));
+			System.out.println("eat");
+		}
 	}
 	void cg(){
 		//   Give this variable an index equal to numberOfLocals
@@ -899,14 +946,15 @@ class methodDeclNode extends ASTNode {
 
 	void cg() {
 		//name.cg();
+		numberOfLocals = 0;
 		args.cg();
 		StringBuilder params = new StringBuilder();
 		for (SymbolInfo param: paramTypes){
-			params.append(typeGen(param));
+			params.append(arrayGen(param)+typeGen(param));
 		}
 		gen(".method"," public static",name.idname+"("+params.toString()+")"+typeGen(returnType.type));
 		if (numberOfLocals >=0)
-			gen(".limit","locals",numberOfLocals+2);
+			gen(".limit","locals",numberOfLocals+8);
 		returnType.cg();
 		decls.cg();
 		stmts.cg();
@@ -982,6 +1030,9 @@ class oneDeclNode extends argDeclsNode {
 		arg.checkTypes();
 		params.add(arg.name);
 	}
+	void cg(){
+		arg.cg();
+	}
 	private argDeclNode arg;
 }
 class comaDeclsNode extends argDeclsNode {
@@ -1000,6 +1051,10 @@ class comaDeclsNode extends argDeclsNode {
 		params.add(formalDecl.name);
 		someFormals.checkTypes();
 
+	}
+	void cg(){
+		formalDecl.cg();
+		someFormals.cg();
 	}
 	private argDeclNode formalDecl;
 	private argDeclsNode someFormals;
@@ -1032,6 +1087,13 @@ class arrayArgDeclNode extends argDeclNode {
 		insertNoCatch(id);
 		argName.checkTypes();
 	}
+	void cg(){
+		//System.out.println("numberOfLocals"+numberOfLocals);
+		argName.idinfo.varIndex = numberOfLocals;
+		argName.idinfo.globel = false;
+		//   Increment numberOfLocals used in this prog
+		numberOfLocals++;
+	}
 	private final identNode argName;
 	private final typeNode elementType;
 } // class arrayArgDeclNode 
@@ -1061,7 +1123,13 @@ class valArgDeclNode extends argDeclNode {
 		//params.add(argName.idname);
 		
 	}
-
+	void cg(){
+		System.out.println("numberOfLocals"+numberOfLocals);
+		argName.idinfo.varIndex = numberOfLocals;
+		argName.idinfo.globel = false;
+		//   Increment numberOfLocals used in this prog
+		numberOfLocals++;
+	}
 	private final identNode argName;
 	private final typeNode argType;
 } // class valArgDeclNode 
@@ -1606,7 +1674,13 @@ class returnNode extends stmtNode {
 		}
 	}
 	void cg(){
-		returnVal.cg();
+		if(returnVal== null){
+			gen("return");
+		}
+		else{
+			returnVal.cg();
+			gen("ireturn");
+		}
 	}
 	private final exprNode returnVal;
 } // class returnNode 
@@ -2148,7 +2222,17 @@ class castNode extends exprNode {
 		type3MustBe(operand.type.val, Types.Boolean,Types.Character,Types.Integer, error()+
 			"Can only cast booleans, chars, or ints.");
 	}
-
+	void cg() {
+		operand.cg();
+		if(operand.type.val == Types.Boolean ||operand.type.val == Types.Integer  && resultType.type.val == Types.Character){
+			gen("i2c");
+		}
+		/*
+		if(operand.type.val == Types.Character){
+			gen("c2i");
+		}
+		*/
+	}
 	private final exprNode operand;
 	private final typeNode resultType;
 } // class castNode 
@@ -2207,7 +2291,7 @@ class fctCallNode extends stmtNode {
 		methodArgs.cg();
 		StringBuilder a = new StringBuilder();
 		for(SymbolInfo param: params){
-			a.append(typeGen(param));
+			a.append(arrayGen(param)+ typeGen(param));
 			System.out.println("param:\t"+param.toString());
 		}
 		SymbolInfo id;
@@ -2366,10 +2450,10 @@ class identNode extends exprNode {
 		SymbolInfo id = (SymbolInfo)st.globalOnly(idname);
 		st.dump(System.out);
 		System.out.println("id:\t"+idname);
-		if(id == null) {   //this is not a global variable;
+		if(!idinfo.globel) {   //this is not a global variable;
 			System.out.println(idinfo.type);
-			if( idinfo.kind.val == Kinds.Array){
-				gen("iaload",idinfo.varIndex);
+			if( idinfo.kind.val == Kinds.Array || idinfo.kind.val == Kinds.ArrayParam){
+				gen("aload",idinfo.varIndex);
 				return;
 			}
 			switch(idinfo.type.val){
@@ -2498,9 +2582,10 @@ class intLitNode extends exprNode {
 } // class intLitNode 
 
 class charLitNode extends exprNode {
-	charLitNode(String val, int line, int col) {
+	charLitNode(String val, char chrval, int line, int col) {
 		super(line, col, new Types(Types.Character), new Kinds(Kinds.Value));
 		charval = val;
+		rcharval = chrval;
 	}
 	void Unparse(int indent) {
 		genIndent(indent);
@@ -2509,6 +2594,10 @@ class charLitNode extends exprNode {
 	void checkTypes() {
 
 	}
+	void cg() {
+		gen("ldc",rcharval);
+	}
+	public final char rcharval;
 	private final String charval;
 } // class charLitNode 
 
