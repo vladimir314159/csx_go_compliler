@@ -105,7 +105,9 @@ public class CSXLib{
 	public static char[] convertString(String s) {
 		return  s.toCharArray();
 	} // convertString
-
+	public static char convertStringToChar(String s){
+		return s.charAt(0);
+	}
 	public static int[] checkIntArrayLength(int[] target, int source[]) {
 		if (target.length != source.length) {
 			throw new ArraySizeException();

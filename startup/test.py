@@ -1,12 +1,7 @@
-
-i = 1
-j = 1
-sum  = 0
-print("Testing program p16csx\n")
-while i <= 100:
-    j = 1
-    while j <= 100:
-        j = j + 1
-        sum = sum + 1
-    i = i + 1
-print("The value of sum is "+str(sum)+ "\n")
+import os
+for i in range(0,9):
+    os.system("make inputfile file=test-0"+str(i)+".csx_go")
+for i in range(10,16):
+    os.system("make inputfile file=test-"+str(i)+".csx_go")
+for i in range(18,43):
+    os.system("make inputfile file=test-"+str(i)+".csx_go")

@@ -45,16 +45,16 @@ ASTNode.class: ast.java sym.class SymbolTable.class SymbolInfo.class
 P5.class: Yylex.class Scanner.class parser.class ASTNode.class
 
 test: all CSXLib.class
-	java $(JFLAGS) P5 $(TESTDIR)/test.csx_lite
-	java -classpath $(JASMINPATH) jasmin.Main test.j
-	java -classpath .:./classes test
-	@echo
-tests: all CSXLib.class
-	java $(JFLAGS) P5 ../tests/test-00.csx_go
+	java $(JFLAGS) P5 $(TESTDIR)/test.csx_go
 	java -classpath $(JASMINPATH) jasmin.Main test.j
 	java -classpath .:./classes test
 	@echo
 
+inputfile: all CSXLib.class
+	java $(JFLAGS) P5 $(TESTDIR)/$(file)
+	java -classpath $(JASMINPATH) jasmin.Main test.j
+	java -classpath .:./classes test
+	@echo
 ###
 # style check
 ###

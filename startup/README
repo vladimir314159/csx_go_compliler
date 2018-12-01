@@ -1,0 +1,21 @@
+Daniel (даниил) Houston Project 5:
+
+To Dr. Finkel:
+    Your paths are included in my makefile you just have to uncomment them.
+
+Bugs:
+    None known everything works on all test files.  I emplemented assigning of globals, however I did not implement labeled for loops.
+    
+
+Java cup note:
+    I finally found java-cup 10k so it should be compatible with all machines now.
+
+Running:
+    to run the file test.csx_go:
+        make test
+    to run anyfile in the test directory
+        make inputfile file=<put_file_here>
+
+
+Symbol Table: 
+    I added a new method called globalOnly which checks to see if the only place a variable is declaired is in the global scope.

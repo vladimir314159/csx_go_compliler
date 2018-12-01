@@ -14,7 +14,7 @@ func main() {
     var z int;
     print "Testing Program p18csx\n";
     read x, y, z;
-    if ((x != ~5) || (y != ~13)) || (z != 20) {
+    if ((x != ~5)|| (y != ~13)) || (z != 20) {
         print "\nERROR: Read error\n";
     }
     x = 1000;
